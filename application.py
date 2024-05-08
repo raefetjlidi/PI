@@ -33,6 +33,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 
+
 from helpers import apology, login_required
 # Configure application
 app = Flask(__name__)
@@ -336,6 +337,72 @@ def predict():
     return render_template('result.html', predicted_lost_quantity=predicted_lost_quantity[0])
 
 
+
+
+
+
+
+@app.route('/stockage')
+def stockage():
+  
+  #Load inventory data
+    inventory_data = pd.read_csv('/data/ORDER_RECIPE1.csv')
+
+    # Convert 'START_TIME' to datetime
+    inventory_data['START_TIME'] = pd.to_datetime(inventory_data['START_TIME'])
+
+    # Dictionary to store MSE for each product group
+    mse_per_product = {}
+
+    # Define the product groups
+    product_groups = ['group1', 'group2', 'group3']  # Update with your actual product groups
+
+    # Loop over each product group
+    for product_group in product_groups:
+        # Filter data for the current product group
+        product_data = inventory_data[inventory_data['PRODUCT_GROUP_CODE'] == product_group]
+
+        print(f'Product group: {product_group}, Number of samples: {len(product_data)}')
+
+        # Check if the dataset is empty
+        if len(product_data) == 0:
+            print(f'Skipping {product_group} due to empty dataset')
+            continue
+
+        # Group data by start time and sum product quantities
+        grouped_data = product_data.groupby('START_TIME')['ORDERED_QUANTITY'].sum().reset_index()
+
+        # Convert 'START_TIME' to timestamp
+        grouped_data['START_TIME_TIMESTAMP'] = grouped_data['START_TIME'].apply(lambda x: x.timestamp())
+
+        # Split data into features (X) and target variable (y)
+        X = grouped_data[['START_TIME_TIMESTAMP']]  # Features: Start time
+        y = grouped_data['ORDERED_QUANTITY']  # Target variable: Ordered quantity
+
+        # Split data into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        print(f'X_train size: {len(X_train)}, X_test size: {len(X_test)}, y_train size: {len(y_train)}, y_test size: {len(y_test)}')
+
+        # Initialize and train the linear regression model
+        model = LinearRegression()
+        model.fit(X_train, y_train)
+
+        # Make predictions on the testing set
+        y_pred_test = model.predict(X_test)
+
+        # Make predictions on the training set (for validation)
+        y_pred_train = model.predict(X_train)
+
+        # Calculate mean squared error for test and validation sets
+        mse_test = mean_squared_error(y_test, y_pred_test)
+        mse_train = mean_squared_error(y_train, y_pred_train)
+
+        # Store MSE for the current product group
+        mse_per_product[product_group] = {'test': mse_test, 'train': mse_train}
+
+    # Render the results template with MSE values
+    return render_template('results.html', mse_per_product=mse_per_product)
 # Listen for errors
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
