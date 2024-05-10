@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Index
+{% endblock %}
+
+{% block main %}
+<body>
+  {% if session.feedback == "security" %}
+    {% include "security.html" %}
+  {% elif session.feedback == "operation" %}
+    {% include "operation.html" %}
+  {% else %}
+    {% include "default.html" %}
+  {% endif %}
+  <iframe title="version_1_DASHBOARDDD" width="1140" height="541.25" src="https://app.powerbi.com/reportEmbed?reportId=fe5d7e97-e299-41b9-98ba-bc53b385cff6&autoAuth=true&ctid=604f1a96-cbe8-43f8-abbf-f8eaf5d85730" frameborder="0" allowFullScreen="true"></iframe>
+</html>
+{% endblock %}
+
